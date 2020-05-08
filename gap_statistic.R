@@ -1,6 +1,6 @@
 library(reshape2)
 library(ggplot2)
-library(Biobase)
+# library(Biobase)
 
 # set working directory
 setwd('/Users/alicesommer/Desktop/Bureau/data_sex_epi')
@@ -78,8 +78,11 @@ stat(data_meth["cg13869341",colnames(data_meth) %in% female_ID],data_meth["cg138
 ####################################
 
 # gap_stat <- apply(data_meth, 1, function(x) stat(x[female_ID_num], x[male_ID_num]))
+# scenario <- apply(data_meth, 1, function(x) as.numeric(mean(x[female_ID_num]) > mean(x[male_ID_num])))
 # save(gap_stat, file="gap_stat.RData")
+# save(scenario, file="scenario")
 load('gap_stat.RData') 
+load('scenario.RData') 
 
 hist(gap_stat, breaks=100)
 table(gap_stat)
