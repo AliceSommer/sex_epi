@@ -1,7 +1,6 @@
 library(reshape2)
 library(ggplot2)
 library(gridExtra)
-# library(Biobase)
 
 # set working directory
 setwd('/Users/alicesommer/Desktop/Bureau/data_sex_epi')

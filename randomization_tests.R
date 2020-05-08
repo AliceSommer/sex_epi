@@ -34,6 +34,13 @@ colnames(t_arrays_data_frame) <- cgs
 
 t_array_melt <- melt(t_arrays_data_frame)
 
-ggplot(t_array_melt,aes(x = value)) + 
-  facet_wrap(~variable,scales = "free_x") + 
+g_rand <- ggplot(t_array_melt,aes(x = value)) + 
+  facet_wrap(~variable,nrow = 12) + 
   geom_histogram()
+
+ggsave(file = 'null_distributions.jpeg', g_rand,
+       dpi=300,
+       width = 150,
+       height = 200,
+       units = "mm")
+
