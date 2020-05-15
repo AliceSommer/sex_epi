@@ -25,16 +25,41 @@ stat <- function(a,b){
   }
 }
 
+#############
+# LOAD DATA #
+#############
+
 ## twin methylation data
 load('betas_preprocessed.RData')
-data <- betas.preprocessed
 # metadata
 phenotype <- read.csv('phenotype.csv')
 head(phenotype)
 
 ## bob methylation data
 load("clean.RData")
-data_b <- clean4
+
+#####################
+# FILTER BAD PROBES #
+#####################
+
+# generate 'bad' probes filter
+# cross-reactive/non-specific
+cross.react <- read.csv('probe_filter/48639-non-specific-probes-Illumina450k.csv', head = T, as.is = T)
+cross.react.probes <- as.character(cross.react$TargetID)
+# BOWTIE2 multi-mapped
+multi.map <- read.csv('probe_filter/HumanMethylation450_15017482_v.1.1_hg19_bowtie_multimap.txt', head = F, as.is = T)
+multi.map.probes <- as.character(multi.map$V1)
+# determine unique probes
+filter.probes <- unique(c(cross.react.probes, multi.map.probes))
+
+## filter the matrix of beta values (TWIN)
+table(rownames(betas.preprocessed) %in% filter.probes)
+filter.bad <- rownames(betas.preprocessed) %in% filter.probes
+data <- betas.preprocessed[!filter.bad,]
+## filter the matrix of beta values (BOB)
+table(rownames(clean4) %in% filter.probes)
+filter.bad <- rownames(clean4) %in% filter.probes
+data_b <- clean4[!filter.bad,]
 
 ################
 ################
@@ -117,7 +142,7 @@ table(scenario)
 ###################################
 ### PLOT GAP STAT OF TWIN STUDY ###
 ###################################
-gap <- 80
+gap <- 75
 
 gap_stats_interest <- gap_stat[gap_stat >= gap]
 gap_stats_ordered <- gap_stats_interest[order(gap_stats_interest)]
@@ -149,37 +174,34 @@ cgs_interest_melt <- merge(cgs_interest_melt, data.frame(cg_names = names(scenar
 data_b$cg_name <- factor(rownames(data_b), levels = rownames(data_b))
 cgs_interest_melt <- merge(cgs_interest_melt, data_b[,c("chr","site","distance","cg_name")],
                            by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
-cgs_interest_melt$chr <- factor(as.numeric(cgs_interest_melt$chr), levels = 1:22)
+relevel_chr <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y")
+cgs_interest_melt$chr <- factor(as.numeric(cgs_interest_melt$chr), levels = relevel_chr)
 
 gap_value <- data.frame(stat = as.character(gap_stats_ordered), cg_name = names(gap_stats_ordered))
-# gap_value <- merge(gap_value, data_b[,c("chr","cg_name")], by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
-# gap_value_1 <- gap_value[gap_value$cg_name %in% unique(cgs_interest_melt$cg_name[cgs_interest_melt$scenario == 1]),]
-# gap_value_0 <- gap_value[gap_value$cg_name %in% unique(cgs_interest_melt$cg_name[cgs_interest_melt$scenario == 0]),]
+gap_value <- merge(gap_value, data_b[,c("chr","cg_name")], by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
+gap_value$chr <- factor(as.numeric(gap_value$chr), levels = relevel_chr)
+gap_value_1 <- gap_value[gap_value$cg_name %in% unique(cgs_interest_melt$cg_name[cgs_interest_melt$scenario == 1]),]
+gap_value_0 <- gap_value[gap_value$cg_name %in% unique(cgs_interest_melt$cg_name[cgs_interest_melt$scenario == 0]),]
 
 g_1 <- ggplot(cgs_interest_melt[cgs_interest_melt$scenario == 1,], aes(x=value)) +
   geom_histogram(alpha=0.5, aes(fill=sex), bins = 100, position="identity") +
-  facet_wrap(. ~ chr + cg_name, nrow = 7, scales="free_y") + xlab('x 100 (%)') +
-  # geom_text(data = gap_value_1, mapping = aes(x = .5, y = 40, label = stat)) +
+  facet_wrap(. ~ chr + cg_name, nrow = 4) + xlab('x 100 (%)') +
+  geom_text(data = gap_value_1, mapping = aes(x = .5, y = 40, label = stat)) +
   ggtitle('Twin study - Female higher scenario') + theme_minimal() 
 
 g_0 <- ggplot(cgs_interest_melt[cgs_interest_melt$scenario == 0,], aes(x=value)) +
   geom_histogram(alpha=0.5, aes(fill=sex), bins = 100, position="identity") +
-  facet_wrap(. ~ chr + cg_name, nrow = 4, scales="free_y") + xlab('x 100 (%)') +
-  # geom_text(data = gap_value_0, mapping = aes(x = .5, y = 40, label = stat)) +
+  facet_wrap(. ~ chr + cg_name, nrow = 1) + xlab('x 100 (%)') +
+  geom_text(data = gap_value_0, mapping = aes(x = .5, y = 40, label = stat)) +
   ggtitle('Twin study - Male higher scenario') + theme_minimal() 
 
-ggsave(file = 'twin_scenario1.jpeg', g_1,
-       dpi=300,
-       width = 170,
-       height = 260,
-       units = "mm")
+g <- grid.arrange(g_1, g_0, nrow = 2, heights=c(2.5,1))
 
-ggsave(file = 'twin_scenario0.jpeg', g_0,
-       dpi=300,
-       width = 170,
-       height = 180,
-       units = "mm")
-
+# ggsave(file = 'twin_scenario.jpeg', g,
+#        dpi=300,
+#        width = 170,
+#        height = 260,
+#        units = "mm")
    
 ################
 ################
@@ -228,38 +250,30 @@ bob_melt <- merge(bob_melt, data.frame(cg_names = names(scenario),scenario),
                            by.x = 1, by.y = 1, all.x = TRUE)
 
 gap_value_bob <- data.frame(stat = as.character(gap_stat_bob[cgs]), cg_name = cgs)
-
-ggplot(bob_melt, aes(x=value)) +
-  geom_histogram(alpha=0.5, aes(fill=sex), bins = 100, position="identity") +
-  facet_wrap(. ~ chr + cg_name, nrow = 7) +
-  # geom_text(data = gap_value_bob, mapping = aes(x = .5, y = 6, label = stat)) +
-  ggtitle('Bob') 
+gap_value_bob <- merge(gap_value_bob, data_b[,c("chr","cg_name")], by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
+gap_value_bob$chr <- factor(as.numeric(gap_value_bob$chr), levels = relevel_chr)
+gap_value_bob_1 <- gap_value_bob[gap_value_bob$cg_name %in% unique(bob_melt$cg_name[bob_melt$scenario == 1]),]
+gap_value_bob_0 <- gap_value_bob[gap_value_bob$cg_name %in% unique(bob_melt$cg_name[bob_melt$scenario == 0]),]
 
 g_1_bob <- ggplot(bob_melt[bob_melt$scenario == 1,], aes(x=value)) +
   geom_histogram(alpha=0.5, aes(fill=sex), bins = 100, position="identity") +
-  facet_wrap(. ~ chr + cg_name, nrow = 7, scales="free_y") + xlab('x 100 (%)') +
-  # geom_text(data = gap_value_1, mapping = aes(x = .5, y = 40, label = stat)) +
+  facet_wrap(. ~ chr + cg_name, nrow = 4) + xlab('x 100 (%)') +
+  geom_text(data = gap_value_bob_1, mapping = aes(x = .5, y = 5, label = stat)) +
   ggtitle('Bob data - Female higher scenario') + theme_minimal() 
 
 g_0_bob <- ggplot(bob_melt[bob_melt$scenario == 0,], aes(x=value)) +
   geom_histogram(alpha=0.5, aes(fill=sex), bins = 100, position="identity") +
-  facet_wrap(. ~ chr + cg_name, nrow = 4, scales="free_y") + xlab('x 100 (%)') +
-  # geom_text(data = gap_value_0, mapping = aes(x = .5, y = 40, label = stat)) +
+  facet_wrap(. ~ chr + cg_name, nrow = 1) + xlab('x 100 (%)') +
+  geom_text(data = gap_value_bob_0, mapping = aes(x = .5, y = 5, label = stat)) +
   ggtitle('Bob data  - Male higher scenario') + theme_minimal() 
 
-ggsave(file = 'bob_scenario1.jpeg', g_1_bob,
+g_bob <- grid.arrange(g_1_bob, g_0_bob, nrow = 2, heights=c(2.5,1))
+
+ggsave(file = 'bob_scenario.jpeg', g_bob,
        dpi=300,
        width = 170,
        height = 260,
        units = "mm")
 
-ggsave(file = 'bob_scenario0.jpeg', g_0_bob,
-       dpi=300,
-       width = 170,
-       height = 180,
-       units = "mm")
 
-
-
-
-
+  
