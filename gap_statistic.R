@@ -61,6 +61,10 @@ table(rownames(clean4) %in% filter.probes)
 filter.bad <- rownames(clean4) %in% filter.probes
 data_b <- clean4[!filter.bad,]
 
+## relevel chr variable in bob's data
+relevel_chr <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y")
+data_b$chr <- factor(data_b$chr, levels = relevel_chr)
+
 ################
 ################
 ##
@@ -174,12 +178,9 @@ cgs_interest_melt <- merge(cgs_interest_melt, data.frame(cg_names = names(scenar
 data_b$cg_name <- factor(rownames(data_b), levels = rownames(data_b))
 cgs_interest_melt <- merge(cgs_interest_melt, data_b[,c("chr","site","distance","cg_name")],
                            by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
-relevel_chr <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y")
-cgs_interest_melt$chr <- factor(as.numeric(cgs_interest_melt$chr), levels = relevel_chr)
 
 gap_value <- data.frame(stat = as.character(gap_stats_ordered), cg_name = names(gap_stats_ordered))
 gap_value <- merge(gap_value, data_b[,c("chr","cg_name")], by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
-gap_value$chr <- factor(as.numeric(gap_value$chr), levels = relevel_chr)
 gap_value_1 <- gap_value[gap_value$cg_name %in% unique(cgs_interest_melt$cg_name[cgs_interest_melt$scenario == 1]),]
 gap_value_0 <- gap_value[gap_value$cg_name %in% unique(cgs_interest_melt$cg_name[cgs_interest_melt$scenario == 0]),]
 
@@ -251,7 +252,7 @@ bob_melt <- merge(bob_melt, data.frame(cg_names = names(scenario),scenario),
 
 gap_value_bob <- data.frame(stat = as.character(gap_stat_bob[cgs]), cg_name = cgs)
 gap_value_bob <- merge(gap_value_bob, data_b[,c("chr","cg_name")], by.x = "cg_name", by.y = "cg_name", all.x = TRUE)
-gap_value_bob$chr <- factor(as.numeric(gap_value_bob$chr), levels = relevel_chr)
+
 gap_value_bob_1 <- gap_value_bob[gap_value_bob$cg_name %in% unique(bob_melt$cg_name[bob_melt$scenario == 1]),]
 gap_value_bob_0 <- gap_value_bob[gap_value_bob$cg_name %in% unique(bob_melt$cg_name[bob_melt$scenario == 0]),]
 
@@ -269,11 +270,11 @@ g_0_bob <- ggplot(bob_melt[bob_melt$scenario == 0,], aes(x=value)) +
 
 g_bob <- grid.arrange(g_1_bob, g_0_bob, nrow = 2, heights=c(2.5,1))
 
-ggsave(file = 'bob_scenario.jpeg', g_bob,
-       dpi=300,
-       width = 170,
-       height = 260,
-       units = "mm")
+# ggsave(file = 'bob_scenario.jpeg', g_bob,
+#        dpi=300,
+#        width = 170,
+#        height = 260,
+#        units = "mm")
 
 
   
