@@ -26,7 +26,7 @@ for(i in 1:length(cgs)){
 }
 
 ## calculate p_value
-p_values <- apply(t_arrays, 2, function(x) mean(x >= 80))
+p_values <- apply(t_arrays, 2, function(x) mean(x >= 75))
 
 ## melt t_arrays
 t_arrays_data_frame <- data.frame(t_arrays)
@@ -35,12 +35,13 @@ colnames(t_arrays_data_frame) <- cgs
 t_array_melt <- melt(t_arrays_data_frame)
 
 g_rand <- ggplot(t_array_melt,aes(x = value)) + 
-  facet_wrap(~variable,nrow = 12) + 
-  geom_histogram()
+  facet_wrap(~variable) + 
+  geom_histogram(binwidth = 0.8) + 
+  theme(axis.text.x = element_text(angle = -90, vjust = 0.5, hjust = -1)) 
 
 ggsave(file = 'null_distributions.jpeg', g_rand,
        dpi=300,
        width = 150,
-       height = 200,
+       height = 100,
        units = "mm")
 
