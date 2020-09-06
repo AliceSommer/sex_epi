@@ -73,4 +73,37 @@ ggplot(data_melt, aes(x=value)) +
 
 ![](subset_example_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
-### Randomization tests
+## Randomization tests
+
+``` r
+# set the number of randomizations
+nrep <- 10^5
+
+# create a matrix where the t_rand will be saved
+t_arrays <- matrix(NA, ncol=length(gap_stat_bob), nrow=nrep)
+
+for(i in 1:nrep){
+  # print(i)
+  W_rep = sample(sex_vec)
+  # fill t_arrays 
+  t_arrays[i,] = apply(data_sub[,2:20], 2, function(x) stat(x[W_rep == "F"],x[W_rep == "M"]))
+}
+
+t_arrays <- rbind(gap_stat_bob,t_arrays)
+
+## calculate p_value
+p_values <- apply(t_arrays, 2, function(x) mean(t_arrays >= t_arrays[1,]))
+
+## melt t_arrays
+t_arrays_data_frame <- data.frame(t_arrays)
+colnames(t_arrays_data_frame) <- names(gap_stat_bob)
+
+t_array_melt <- melt(t_arrays_data_frame)
+
+ggplot(t_array_melt,aes(x = value)) + 
+  facet_wrap(~variable, nrow = 5) + 
+  geom_histogram(binwidth = 0.8) + 
+  theme(axis.text.x = element_text(angle = -90, vjust = 0.5, hjust = -1)) 
+```
+
+![](subset_example_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
