@@ -76,15 +76,42 @@ ggplot(data_melt, aes(x=value)) +
 ## Randomization tests
 
 ``` r
+## How many possible randomizations? 
+choose(17,2)
+```
+
+    ## [1] 136
+
+``` r
+## fill a matrix will all the possible treatment assignments (W_sim)
+# columns: nr. of units
+# rows: nr. of randomizations/premutations
+W_sim = matrix(NA, ncol=17, nrow=10^5)
+for(t in 1:10^5){
+  W_sim[t,] = sample(sex_vec) # permute the treatment assignement vector (CRD)
+}
+
+# head(W_sim)
+
+## retrieve the unique W vectors (W_sim_unique)
+W_sim_unique = unique(W_sim, MARGIN = 1)
+dim(W_sim_unique)
+```
+
+    ## [1] 136  17
+
+## Calculate separation stat. for all possible randomizations (null randomization distribution)
+
+``` r
 # set the number of randomizations
-nrep <- 10^5
+nrep <- dim(W_sim_unique)[1]
 
 # create a matrix where the t_rand will be saved
 t_arrays <- matrix(NA, ncol=length(gap_stat_bob), nrow=nrep)
 
 for(i in 1:nrep){
   # print(i)
-  W_rep = sample(sex_vec)
+  W_rep = W_sim_unique[i,]
   # fill t_arrays 
   t_arrays[i,] = apply(data_sub[,2:20], 2, function(x) stat(x[W_rep == "F"],x[W_rep == "M"]))
 }
@@ -100,10 +127,15 @@ colnames(t_arrays_data_frame) <- names(gap_stat_bob)
 
 t_array_melt <- melt(t_arrays_data_frame)
 
+dat_text_lab <- data.frame(variable = names(gap_stat_bob))
+dat_text_lab$obs_stat <- as.numeric(gap_stat_bob)
+
 ggplot(t_array_melt,aes(x = value)) + 
   facet_wrap(~variable, nrow = 5) + 
   geom_histogram(binwidth = 0.8) + 
-  theme(axis.text.x = element_text(angle = -90, vjust = 0.5, hjust = -1)) 
+  theme(axis.text.x = element_text(angle = -90, vjust = 0.5, hjust = -1)) +
+  geom_vline(data = dat_text_lab, mapping = aes(xintercept = obs_stat), 
+             linetype = "dashed", colour = "red", size = .3)
 ```
 
-![](subset_example_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](subset_example_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->

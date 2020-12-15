@@ -10,9 +10,12 @@ opposite_sex_melt <- cgs_interest_melt[cgs_interest_melt$variable %in% DZ_ID,]
 opposite_sex_melt$pair_nb <- "Pair 1"
 opposite_sex_melt$pair_nb[opposite_sex_melt$variable %in% DZ_ID_11] <- "Pair 2" # DZ_ID_11 == 2
 
+levels(opposite_sex_melt$scenario) <- c("Male higher", "Female higher")
+
 g_twin <- ggplot(opposite_sex_melt) +
   geom_point(aes(x = value, y = cg_name, colour = sex)) +
-  facet_grid(scenario ~ pair_nb, scales = "free", space = "free") + theme_minimal() +
+  facet_grid(scenario ~ pair_nb, scales = "free", space = "free") + 
+  theme_light() +
   ggtitle("Opposite sex twins") + xlab('x 100 (%)')
   
 ggsave(file = 'twin_opposite_sex.jpeg', g_twin,
